@@ -7,19 +7,26 @@ import MuteMode from './components/MuteMode';
 import LearningMode from './components/LearningMode';
 import Auth from './components/Auth';
 import SignVault from './components/SignVault';
+import { testBackend } from './services/geminiService';
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(AppMode.ONBOARDING);
   const [language, setLanguage] = useState<Language>(Language.ENGLISH);
   const [logs, setLogs] = useState<HistoryLog[]>([]);
   const [user, setUser] = useState<User | null>(null);
+  const [backendStatus, setBackendStatus] = useState<string>("Checking...");
 
-  // ✅ Backend Test Connection
+  // ✅ Backend Health Check
   useEffect(() => {
-    fetch("https://abhaymane.pythonanywhere.com/api/test")
-      .then(res => res.json())
-      .then(data => console.log("Backend Response:", data))
-      .catch(err => console.error("Backend Error:", err));
+    testBackend()
+      .then(data => {
+        console.log("Backend Connected:", data);
+        setBackendStatus("Connected ✅");
+      })
+      .catch(err => {
+        console.error("Backend Error:", err);
+        setBackendStatus("Disconnected ❌");
+      });
   }, []);
 
   useEffect(() => {
@@ -90,6 +97,11 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Backend status indicator */}
+            <span className="text-xs font-semibold text-slate-500">
+              Backend: {backendStatus}
+            </span>
+
             <select 
               value={language}
               onChange={(e) => setLanguage(e.target.value as Language)}
