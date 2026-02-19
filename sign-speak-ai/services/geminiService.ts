@@ -1,96 +1,113 @@
-from flask import Flask, request, jsonify, Response
-from flask_cors import CORS
-import google.generativeai as genai
-import os
-import json
-import time
-import base64
+import { Language } from "../types";
 
-app = Flask(__name__)
-CORS(app)
+const API_BASE = "https://abhaymane.pythonanywhere.com";
 
-# -----------------------
-# Configure Gemini
-# -----------------------
-API_KEY = os.environ.get("API_KEY")
-genai.configure(api_key=API_KEY)
+/**
+ * Describe Sign (Streaming)
+ */
+export const describeSignStream = async (
+  text: string,
+  language: Language,
+  onChunk: (text: string) => void
+) => {
+  const response = await fetch(`${API_BASE}/api/describe-sign-stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text,
+      languageName: language,
+    }),
+  });
 
-# -----------------------
-# Test Route
-# -----------------------
-@app.route("/")
-def home():
-    return "Backend Running 🚀"
+  if (!response.body) return;
 
-@app.route("/api/test", methods=["GET"])
-def test():
-    return jsonify({"message": "Backend connected successfully!"})
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
 
-# -----------------------
-# Describe Sign (Streaming)
-# -----------------------
-@app.route("/api/describe-sign-stream", methods=["POST"])
-def describe_sign_stream():
-    data = request.json
-    text = data.get("text")
-    language = data.get("languageName", "English")
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
 
-    def generate():
-        model = genai.GenerativeModel("gemini-3-flash-preview")
-        prompt = f"Explain briefly how to sign '{text}' in ASL."
-        response = model.generate_content(prompt, stream=True)
+    const chunk = decoder.decode(value);
+    const lines = chunk.split("\n");
 
-        for chunk in response:
-            yield f"data: {json.dumps({'text': chunk.text})}\n\n"
-
-    return Response(generate(), mimetype="text/event-stream")
-
-# -----------------------
-# Generate Image
-# -----------------------
-@app.route("/api/generate-sign-image", methods=["POST"])
-def generate_image():
-    data = request.json
-    text = data.get("text")
-
-    model = genai.GenerativeModel("gemini-2.5-flash-image")
-    response = model.generate_content(
-        f"ASL sign for '{text}', clean white background."
-    )
-
-    for part in response.candidates[0].content.parts:
-        if part.inline_data:
-            return jsonify({
-                "success": True,
-                "image_data": f"data:image/png;base64,{base64.b64encode(part.inline_data.data).decode()}"
-            })
-
-    return jsonify({"success": False})
-
-# -----------------------
-# Recognize Gesture
-# -----------------------
-@app.route("/api/recognize-gesture", methods=["POST"])
-def recognize():
-    data = request.json
-    image_base64 = data.get("image")
-
-    model = genai.GenerativeModel("gemini-3-flash-preview")
-    image_part = {
-        "mime_type": "image/jpeg",
-        "data": base64.b64decode(image_base64)
+    for (const line of lines) {
+      if (line.startsWith("data: ")) {
+        try {
+          const json = JSON.parse(line.replace("data: ", ""));
+          if (json.text) onChunk(json.text);
+        } catch (err) {
+          console.error("Stream parse error:", err);
+        }
+      }
     }
+  }
+};
 
-    response = model.generate_content(
-        ["What sign is this?", image_part]
-    )
+/**
+ * Generate Sign Image
+ */
+export const generateSignImage = async (
+  text: string,
+  language: Language
+) => {
+  const res = await fetch(`${API_BASE}/api/generate-sign-image`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text,
+      languageName: language,
+    }),
+  });
 
-    return jsonify({
-        "success": True,
-        "prediction": response.text.strip()
-    })
+  const data = await res.json();
+  return data.success ? data.image_data : null;
+};
 
-# -----------------------
+/**
+ * Generate Sign Video
+ */
+export const generateSignVideo = async (
+  text: string,
+  language: Language
+) => {
+  const res = await fetch(`${API_BASE}/api/generate-sign-video`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text,
+      languageName: language,
+    }),
+  });
 
-if __name__ == "__main__":
-    app.run(debug=True)
+  const data = await res.json();
+  return data.success ? data.video_url : null;
+};
+
+/**
+ * Recognize Gesture
+ */
+export const recognizeGesture = async (
+  imageBase64: string,
+  language: Language
+) => {
+  const res = await fetch(`${API_BASE}/api/recognize-gesture`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image: imageBase64,
+      languageName: language,
+    }),
+  });
+
+  const data = await res.json();
+  return data.success ? data.prediction : "Could not translate.";
+};
+
+/**
+ * Backend Test
+ */
+export const testBackend = async () => {
+  const res = await fetch(`${API_BASE}/api/test`);
+  return res.json();
+};
