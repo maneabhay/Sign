@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { AppMode, HistoryLog, Language, LanguageNames, User } from './types';
 import Onboarding from './components/Onboarding';
@@ -14,6 +13,14 @@ const App: React.FC = () => {
   const [language, setLanguage] = useState<Language>(Language.ENGLISH);
   const [logs, setLogs] = useState<HistoryLog[]>([]);
   const [user, setUser] = useState<User | null>(null);
+
+  // ✅ Backend Test Connection
+  useEffect(() => {
+    fetch("https://abhaymane.pythonanywhere.com/api/test")
+      .then(res => res.json())
+      .then(data => console.log("Backend Response:", data))
+      .catch(err => console.error("Backend Error:", err));
+  }, []);
 
   useEffect(() => {
     const storedLogs = localStorage.getItem('sign_speak_logs');
@@ -81,7 +88,7 @@ const App: React.FC = () => {
               SIGN SPEAK AI
             </h1>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <select 
               value={language}
@@ -98,7 +105,9 @@ const App: React.FC = () => {
                 <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-xs">
                   {user.name.charAt(0)}
                 </div>
-                <button onClick={handleLogout} className="text-[10px] font-black uppercase text-slate-500 hover:text-rose-500 transition-colors">Logout</button>
+                <button onClick={handleLogout} className="text-[10px] font-black uppercase text-slate-500 hover:text-rose-500 transition-colors">
+                  Logout
+                </button>
               </div>
             ) : (
               mode !== AppMode.AUTH && (
@@ -124,12 +133,5 @@ const App: React.FC = () => {
     </div>
   );
 };
-
-useEffect(() => {
-  fetch("https://abhaymane.pythonanywhere.com/api/test")
-    .then(res => res.json())
-    .then(data => console.log(data));
-}, []);
-
 
 export default App;
