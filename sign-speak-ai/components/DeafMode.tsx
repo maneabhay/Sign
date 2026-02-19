@@ -70,16 +70,43 @@ const DeafMode: React.FC<DeafModeProps> = ({ onBack, onLog, language }) => {
   }, [isListening, language]);
 
   const handleTranslate = async (text: string) => {
-    const cleanText = text.toLowerCase().trim();
-    if (!cleanText) return;
-    
-    setFinalTranscript(text);
-    setIsLoading(true);
-    setTextDescription('');
-    setMediaResult(null);
-    setError(null);
+  const cleanText = text.toLowerCase().trim();
+  if (!cleanText) return;
 
-    setInstantIcon(INSTANT_SIGNS[cleanText] || null);
+  setFinalTranscript(text);
+  setIsLoading(true);
+  setTextDescription('');
+  setMediaResult(null);
+  setError(null);
+
+  setInstantIcon(INSTANT_SIGNS[cleanText] || null);
+
+  try {
+    // Describe text stream
+    await describeSignStream(text, language, (chunk) => {
+      setTextDescription(prev => prev + chunk);
+    });
+
+    if (isHD) {
+      const videoUrl = await generateSignVideo(text, language);
+      if (videoUrl) {
+        setMediaResult({ url: videoUrl, type: 'video' });
+      }
+    } else {
+      const imageUrl = await generateSignImage(text, language);
+      if (imageUrl) {
+        setMediaResult({ url: imageUrl, type: 'image' });
+      }
+    }
+
+  } catch (err) {
+    console.error(err);
+    setError("Visual generation failed. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
     const describePromise = describeSignStream(text, language, (chunk) => {
       setTextDescription(prev => prev + chunk);
