@@ -125,4 +125,11 @@ const App: React.FC = () => {
   );
 };
 
+useEffect(() => {
+  fetch("https://abhaymane.pythonanywhere.com/api/test")
+    .then(res => res.json())
+    .then(data => console.log(data));
+}, []);
+
+
 export default App;
