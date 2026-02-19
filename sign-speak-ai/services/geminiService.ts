@@ -165,3 +165,11 @@ export const recognizeGesture = async (imagesBase64: string | string[], language
     return "Could not translate. Please try again.";
   }
 };
+
+export const testBackend = async () => {
+  const res = await fetch(
+    "https://abhaymane.pythonanywhere.com/api/test"
+  );
+  return res.json();
+};
+
