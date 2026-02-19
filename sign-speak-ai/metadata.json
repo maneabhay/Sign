@@ -1,0 +1,8 @@
+{
+  "name": "SIGN SPEAK AI",
+  "description": "An inclusive communication app featuring Deaf Mode (Voice-to-Sign) and Mute Mode (Gesture-to-Speech) powered by Gemini AI.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
